@@ -1,0 +1,60 @@
+---
+title: "PUMS Exploration"
+author: "Christy"
+format: 
+  html:
+    page-layout: full
+editor: visual
+---
+
+## PUMS
+
+Exploring one-person households by income
+
+## Variables
+
+**BINCOME**: income by PSRC breakpoints
+
+**NP**: number persons associate with housing record
+
+**BLD**: units in structure
+
+-   01: Mobile home or trailer
+
+-   02: One-family house detached
+
+-   03: One-family house attached
+
+**HHT**: household/family type
+
+-   4: Nonfamily household: Male householder: Living alone
+
+-   6: Nonfamily household: Female householder: Living alone
+
+```{r setup}
+#| echo: false
+#| warning: false
+
+library(psrccensus)
+library(tidyverse)
+library(DT)
+```
+
+```{r}
+x <- get_psrc_pums(span = 5,                     
+                   dyear = 2023,                 
+                   level = "h",                  
+                   vars = c("BINCOME", "NP", "BLD", "HHT"))      
+
+# View(x$variables)
+
+x_count <- psrc_pums_count(x, stat_var = "NP", group_vars = c("BINCOME", "BLD", "NP", "HHT"))
+
+df <- x_count |> 
+  filter(HHT %in% c(4, 6) & BLD %in% c(1:3) & NP == 1)
+
+```
+
+```{r}
+datatable(df)
+```
