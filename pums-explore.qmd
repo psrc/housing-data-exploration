@@ -31,6 +31,12 @@ Exploring one-person households by income
 
 -   6: Nonfamily household: Female householder: Living alone
 
+**TEN**: tenure
+
+-    3: Renter
+
+-   4: Occupied without payment of rent
+
 ```{r setup}
 #| echo: false
 #| warning: false
@@ -38,23 +44,57 @@ Exploring one-person households by income
 library(psrccensus)
 library(tidyverse)
 library(DT)
+library(psrcplot)
+library(showtext)
 ```
 
 ```{r}
 x <- get_psrc_pums(span = 5,                     
                    dyear = 2023,                 
                    level = "h",                  
-                   vars = c("BINCOME", "NP", "BLD", "HHT"))      
+                   vars = c("BINCOME", "NP", "BLD", "TEN", "HHT"))
 
-# View(x$variables)
+df <- psrc_pums_count(x|> 
+  filter(NP == 1 & TEN %in% c(3,4)), 
+  stat_var = "NP", 
+  group_vars = c("BINCOME")
+  )
 
-x_count <- psrc_pums_count(x, stat_var = "NP", group_vars = c("BINCOME", "BLD", "NP", "HHT"))
-
-df <- x_count |> 
-  filter(HHT %in% c(4, 6) & BLD %in% c(1:3) & NP == 1)
 
 ```
 
-```{r}
-datatable(df)
+```{r table}
+datatable(df,
+          colnames = c("PUMS End Year", "Jurisdiction", "Income", "Count", "Count MOE", "Share", "Share MOE")) |> 
+  formatPercentage(c('share', 'share_moe'), 2) |> 
+  formatRound(c('count', 'count_moe'), 0)
 ```
+
+```{r plot df}
+
+df2 <- df |> 
+  filter(BINCOME != 'Total')
+```
+
+```{r plot visual, fig.width = 10, fig.height=5}
+
+font_add_google("Poppins")
+showtext_auto()
+
+p <- ggplot(df2, aes(x = BINCOME, y = share, fill = BINCOME)) +
+  geom_col() +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = psrcplot::psrc_colors$pognbgy_5, guide="none") +
+  labs(x = NULL,
+       y = NULL,
+       title = "Share of Persons Living Alone in Rented Space by Income",
+       caption = "PUMS 2019-2023") +
+   theme(text = element_text(size=12, family="Poppins"),
+         panel.background = element_blank(),
+         axis.ticks.x = element_blank(),
+         axis.ticks.y = element_blank())
+
+
+p
+```
+
