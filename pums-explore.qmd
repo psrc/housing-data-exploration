@@ -49,6 +49,8 @@ library(showtext)
 ```
 
 ```{r}
+#| eval: false
+
 x <- get_psrc_pums(span = 5,                     
                    dyear = 2023,                 
                    level = "h",                  
@@ -60,10 +62,12 @@ df <- psrc_pums_count(x|>
   group_vars = c("BINCOME")
   )
 
+# write.csv(df, "data/single-renter-by-income.csv")
 
 ```
 
 ```{r table}
+df <- data.table::fread("data/single-renter-by-income.csv")
 datatable(df,
           colnames = c("PUMS End Year", "Jurisdiction", "Income", "Count", "Count MOE", "Share", "Share MOE")) |> 
   formatPercentage(c('share', 'share_moe'), 2) |> 
@@ -89,7 +93,7 @@ p <- ggplot(df2, aes(x = BINCOME, y = share, fill = BINCOME)) +
        y = NULL,
        title = "Share of Persons Living Alone in Rented Space by Income",
        caption = "PUMS 2019-2023") +
-   theme(text = element_text(size=12, family="Poppins"),
+   theme(text = element_text(size=36, family="Poppins"),
          panel.background = element_blank(),
          axis.ticks.x = element_blank(),
          axis.ticks.y = element_blank())
