@@ -1,17 +1,15 @@
 ---
 title: "PUMS Exploration"
-author: "Christy"
 format: 
   html:
     page-layout: full
 editor: visual
 ---
 
-## PUMS
-
-Exploring one-person households by income
-
+::: panel-tabset
 ## Variables
+
+Exploring one-person occupancies by income
 
 **BINCOME**: income by PSRC breakpoints
 
@@ -33,13 +31,16 @@ Exploring one-person households by income
 
 **TEN**: tenure
 
--    3: Renter
+-   3: Renter
 
 -   4: Occupied without payment of rent
+
+## Results
 
 ```{r setup}
 #| echo: false
 #| warning: false
+#| message: false
 
 library(psrccensus)
 library(tidyverse)
@@ -67,6 +68,8 @@ df <- psrc_pums_count(x|>
 ```
 
 ```{r table}
+#| echo: false
+
 df <- data.table::fread("data/single-renter-by-income.csv")
 datatable(df,
           colnames = c("PUMS End Year", "Jurisdiction", "Income", "Count", "Count MOE", "Share", "Share MOE")) |> 
@@ -75,25 +78,33 @@ datatable(df,
 ```
 
 ```{r plot df}
+#| echo: false
 
 df2 <- df |> 
-  filter(BINCOME != 'Total')
+  filter(BINCOME != 'Total') |> 
+  mutate(BINCOME = factor(BINCOME, levels = df$BINCOME))
+
+
 ```
 
 ```{r plot visual, fig.width = 10, fig.height=5}
+#| echo: false
 
 font_add_google("Poppins")
 showtext_auto()
-
+                     
 p <- ggplot(df2, aes(x = BINCOME, y = share, fill = BINCOME)) +
   geom_col() +
+  geom_text(aes(label = scales::percent(round(share, 2))), 
+            vjust = -.5, 
+            size = 25/.pt) +
   scale_y_continuous(labels = scales::percent) +
   scale_fill_manual(values = psrcplot::psrc_colors$pognbgy_5, guide="none") +
   labs(x = NULL,
        y = NULL,
        title = "Share of Persons Living Alone in Rented Space by Income",
        caption = "PUMS 2019-2023") +
-   theme(text = element_text(size=36, family="Poppins"),
+   theme(text = element_text(size = 30, family="Poppins"),
          panel.background = element_blank(),
          axis.ticks.x = element_blank(),
          axis.ticks.y = element_blank())
@@ -102,3 +113,4 @@ p <- ggplot(df2, aes(x = BINCOME, y = share, fill = BINCOME)) +
 p
 ```
 
+:::
