@@ -5,7 +5,7 @@ format:
     toc: true
     toc-depth: 3
     page-layout: full
-    
+    css: styles.css
 editor: visual
 ---
 
