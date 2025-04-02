@@ -2,11 +2,14 @@
 title: "PUMS Exploration"
 format: 
   html:
+    toc: true
+    toc-depth: 3
     page-layout: full
+    
 editor: visual
 ---
 
-::: panel-tabset
+<!-- ::: panel-tabset -->
 ## Variables
 
 Exploring one-person occupancies by income
@@ -35,7 +38,17 @@ Exploring one-person occupancies by income
 
 -   4: Occupied without payment of rent
 
-## Results
+**BIN_AGE**: age (AGEP) grouped by standard PSRC breakpoints
+
+**AGEP**: age of person
+
+**SEX**: Male or Female
+
+**VEH**: Vehicles available 
+
+- 0: No vehicles
+
+## Results: Overview
 
 ```{r setup}
 #| echo: false
@@ -49,20 +62,63 @@ library(psrcplot)
 library(showtext)
 ```
 
+```{r functions}
+#| echo: false
+
+create_dt <- function(file_name, category_var) {
+  df <- data.table::fread(file.path("data", file_name))
+  
+  dt <- datatable(df,
+          colnames = c("PUMS End Year", "Jurisdiction", category_var, "Count", "Count MOE", "Share", "Share MOE"),
+           options = list(dom = 't')) |>  # default is 'lftipr', exclude f to remove search bar 
+                             
+  formatPercentage(c('share', 'share_moe'), 2) |> 
+  formatRound(c('count', 'count_moe'), 0)
+  
+  return(list(df = df, dt = dt))
+}
+
+create_plot <- function(table, xvar, yvar, title, caption) {
+  font_add_google("Poppins")
+  showtext_auto()
+
+  ggplot(table, aes(x = {{xvar}}, y = {{yvar}}, fill = {{xvar}})) +
+    geom_col() +
+    geom_text(aes(label = scales::percent(round(.data[["share"]], 2))), 
+              vjust = -.5, 
+              size = 25/.pt) +
+    scale_y_continuous(labels = scales::percent) +
+    scale_fill_manual(values = psrcplot::psrc_colors$pognbgy_10, guide="none") +
+    labs(x = NULL,
+         y = NULL,
+         title = title,
+         caption = caption) +
+    theme(text = element_text(size = 30, family="Poppins"),
+          panel.background = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.ticks.y = element_blank())
+}
+
+
+
+```
+
 ```{r}
 #| eval: false
 
 x <- get_psrc_pums(span = 5,                     
                    dyear = 2023,                 
                    level = "h",                  
-                   vars = c("BINCOME", "NP", "BLD", "TEN", "HHT"))
+                   vars = c("BINCOME", "NP", "BLD", "TEN", "HHT", "BIN_AGE", "SEX", "VEH"))
 
-df <- psrc_pums_count(x|> 
-  filter(NP == 1 & TEN %in% c(3,4)), 
-  stat_var = "NP", 
-  group_vars = c("BINCOME")
-  )
+# Original
 
+# df <- psrc_pums_count(x|>
+#   # filter(NP == 1 & TEN %in% c(3,4)),
+#   filter(NP == 1 & TEN %in% c("Rented", "Occupied without payment of rent")),
+#   stat_var = "NP",
+#   group_vars = c("BINCOME")
+#   )
 # write.csv(df, "data/single-renter-by-income.csv")
 
 ```
@@ -113,4 +169,104 @@ p <- ggplot(df2, aes(x = BINCOME, y = share, fill = BINCOME)) +
 p
 ```
 
-:::
+## Results: Renters Earning Under $50,000
+
+### Renters Earning by Aggregated Income
+```{r table under 50k}
+#| echo: false
+
+dt_inc_agg <- create_dt("single-renter-by-income-agg.csv", category_var = "Income")
+
+dt_inc_agg$dt
+```
+
+```{r plot under 50k, fig.width = 10, fig.height=5}
+#| echo: false
+
+dt_inc_agg2 <- dt_inc_agg$df |> 
+  filter(bincome_w_50_under != 'Total') |> 
+  mutate(bincome_w_50_under = factor(bincome_w_50_under, levels = dt_inc_agg$df$bincome_w_50_under))
+
+create_plot(table = dt_inc_agg2, 
+            xvar = bincome_w_50_under, 
+            yvar = share, 
+            title = "Share of Renters Living Alone by Income", 
+            caption = "PUMS 2019-2023")
+```
+
+### Age
+
+```{r table under 50k by age}
+#| echo: false
+
+dt_under_50k_age <- create_dt("single-renter-under-50k-by-age.csv", category_var = "Age")
+
+dt_under_50k_age$dt
+
+```
+
+```{r plot under 50k by age, fig.width = 10, fig.height=5}
+#| echo: false
+
+dt_under_50k_age2 <- dt_under_50k_age$df |> 
+  filter(bin_age_broad != 'Total') |> 
+  mutate(bin_age_broad = factor(bin_age_broad, levels = dt_under_50k_age$df$bin_age_broad))
+
+create_plot(table = dt_under_50k_age2, 
+            xvar = bin_age_broad, 
+            yvar = share, 
+            title = "Share of Renters Living Alone earning Under $50,000 by Age", 
+            caption = "PUMS 2019-2023")
+
+```
+
+
+### Sex
+
+```{r table under 50k by sex}
+#| echo: false
+
+dt_under_50k_sex <- create_dt("single-renter-under-50k-by-sex.csv", category_var = "Sex")
+
+dt_under_50k_sex$dt
+```
+```{r plot under 50k by sex, fig.width = 10, fig.height=5}
+#| echo: false
+
+dt_under_50k_sex2 <- dt_under_50k_sex$df |> 
+  filter(SEX != 'Total') |> 
+  mutate(SEX = factor(SEX, levels = dt_under_50k_sex$df$SEX))
+
+create_plot(table = dt_under_50k_sex2, 
+            xvar = SEX, 
+            yvar = share, 
+            title = "Share of Renters Living Alone earning Under $50,000 by Sex", 
+            caption = "PUMS 2019-2023")
+
+```
+
+
+### Number of Vehicles
+
+```{r table under 50k by vehicles}
+#| echo: false
+
+dt_under_50k_veh <- create_dt("single-renter-under-50k-by-veh.csv", category_var = "Number of Vehicles")
+
+dt_under_50k_veh$dt
+```
+```{r plot under 50k by vehicles, fig.width = 10, fig.height=5}
+#| echo: false
+
+dt_under_50k_veh2 <- dt_under_50k_veh$df |> 
+  filter(vehicles != 'Total') |> 
+  mutate(vehicles = factor(vehicles, levels = dt_under_50k_veh$df$vehicles))
+
+create_plot(table = dt_under_50k_veh2, 
+            xvar = vehicles, 
+            yvar = share, 
+            title = "Share of Renters Living Alone earning Under $50,000 by Number of Vehicles", 
+            caption = "PUMS 2019-2023")
+```
+
+<!-- ::: -->
