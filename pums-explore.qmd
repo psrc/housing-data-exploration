@@ -9,10 +9,10 @@ format:
 editor: visual
 ---
 
+Exploring renters who live alone by income, sex, age, and number of vehicles.
+
 <!-- ::: panel-tabset -->
 ## Variables
-
-Exploring one-person occupancies by income
 
 **BINCOME**: income by PSRC breakpoints
 
@@ -109,8 +109,11 @@ create_plot <- function(table, xvar, yvar, title, caption) {
 x <- get_psrc_pums(span = 5,                     
                    dyear = 2023,                 
                    level = "h",                  
-                   vars = c("BINCOME", "NP", "BLD", "TEN", "HHT", "BIN_AGE", "SEX", "VEH"))
+                   vars = c("BINCOME", "NP", "BLD", "TEN", "HHT", "BIN_AGE", "AGEP", "SEX", "VEH"))
+```
 
+```{r baseline}
+#| echo: false
 # Original
 
 # df <- psrc_pums_count(x|>
@@ -126,47 +129,25 @@ x <- get_psrc_pums(span = 5,
 ```{r table}
 #| echo: false
 
-df <- data.table::fread("data/single-renter-by-income.csv")
-datatable(df,
-          colnames = c("PUMS End Year", "Jurisdiction", "Income", "Count", "Count MOE", "Share", "Share MOE")) |> 
-  formatPercentage(c('share', 'share_moe'), 2) |> 
-  formatRound(c('count', 'count_moe'), 0)
+df_inc <- create_dt(file_name = "single-renter-by-income.csv", 
+          category_var = "Income") 
+
+df_inc$dt
 ```
 
-```{r plot df}
+
+```{r plot, fig.width = 10, fig.height=5}
 #| echo: false
 
-df2 <- df |> 
+df_inc2 <- df_inc$df |> 
   filter(BINCOME != 'Total') |> 
-  mutate(BINCOME = factor(BINCOME, levels = df$BINCOME))
+  mutate(BINCOME = factor(BINCOME, levels = df_inc$df$BINCOME))
 
-
-```
-
-```{r plot visual, fig.width = 10, fig.height=5}
-#| echo: false
-
-font_add_google("Poppins")
-showtext_auto()
-                     
-p <- ggplot(df2, aes(x = BINCOME, y = share, fill = BINCOME)) +
-  geom_col() +
-  geom_text(aes(label = scales::percent(round(share, 2))), 
-            vjust = -.5, 
-            size = 25/.pt) +
-  scale_y_continuous(labels = scales::percent) +
-  scale_fill_manual(values = psrcplot::psrc_colors$pognbgy_5, guide="none") +
-  labs(x = NULL,
-       y = NULL,
-       title = "Share of Persons Living Alone in Rented Space by Income",
-       caption = "PUMS 2019-2023") +
-   theme(text = element_text(size = 30, family="Poppins"),
-         panel.background = element_blank(),
-         axis.ticks.x = element_blank(),
-         axis.ticks.y = element_blank())
-
-
-p
+create_plot(df_inc2, 
+            xvar = BINCOME, 
+            yvar = share, 
+            title = "Share of Persons Living Alone in Rented Space by Income", 
+            caption = "PUMS 2019-2023")
 ```
 
 ## Results: Renters Earning Under $50,000
